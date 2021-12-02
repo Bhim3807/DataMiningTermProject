@@ -51,9 +51,13 @@ def extract_bbc_data():
     df = pd.DataFrame(data)
     print('writing csv file...')
     df.to_csv('bbc_raw.csv', index=False)
-    df = pd.read_csv('resources/bbc/bbc_raw.csv');
+    df = pd.read_csv('bbc_raw.csv')
     data = df.sample(frac=1)
     print(data);
+    print(len(data))
+
+
+
 
 
 # Press the green button in the gutter to run the script.
