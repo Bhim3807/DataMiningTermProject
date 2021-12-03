@@ -12,9 +12,12 @@ from sklearn.model_selection import train_test_split, KFold,cross_val_score
 from sklearn.metrics import classification_report, confusion_matrix,accuracy_score, f1_score, log_loss
 from pandas.plotting import scatter_matrix
 import matplotlib.pyplot as plt
-#from google.colab import files, drive
+import json
 
 import pickle
+from imblearn.over_sampling import RandomOverSampler, SMOTE, BorderlineSMOTE
+from imblearn.pipeline import Pipeline
+from imblearn.under_sampling import RandomUnderSampler
 from sklearn import naive_bayes
 from sklearn import svm
 from sklearn.neighbors import KNeighborsClassifier
@@ -122,17 +125,15 @@ def prep(data):
         x[index] = " ".join([Word(word).lemmatize() for word in clean_str(value).split() if word not in set(stopwords.words('english'))])
     return pd.DataFrame({'text':x,'category':data['category']})
 
-##########################################
+
+
+
+#############~~Sampling~~##################
 ###########################################
 
-
-#############~~Training~~##################
-###########################################
-
-def classify(data):
-    x = data['text'].tolist()
-    y = data['category'].tolist()
-
+def sampling(data,typ):
+    x = data['text']
+    y = data['category']
     cv = CountVectorizer()
     word_count_vector = cv.fit_transform(x)
     tfidf_transformer = TfidfTransformer(smooth_idf = True, use_idf = True)
@@ -140,6 +141,36 @@ def classify(data):
     vect = TfidfVectorizer(stop_words='english', min_df=2)
     X = vect.fit_transform(x)
     Y = np.array(y)
+
+    if typ=="oversampling":
+        oversample = RandomOverSampler(sampling_strategy='minority')
+        X_train_new, y_train_new = oversample.fit_resample(X, Y)
+        return X_train_new,y_train_new
+
+    elif typ =="under_sampling":
+        undersample = RandomUnderSampler(sampling_strategy='majority')
+        X_train_new, y_train_new = undersample.fit_resample(X, Y)
+        return X_train_new,y_train_new
+    else:
+        oversample = SMOTE()
+        X_train_new, y_train_new = oversample.fit_resample(X, Y)
+        return X_train_new,y_train_new
+
+
+#############~~Training~~##################
+###########################################
+
+def classify(x,y, sampling):
+    X = x
+    Y = y
+    if(sampling==False):
+        cv = CountVectorizer()
+        word_count_vector = cv.fit_transform(x)
+        tfidf_transformer = TfidfTransformer(smooth_idf = True, use_idf = True)
+        tfidf_transformer.fit(word_count_vector)
+        vect = TfidfVectorizer(stop_words='english', min_df=2)
+        X = vect.fit_transform(x)
+        Y = np.array(y)
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42, shuffle = True)
     modelDT = tree.DecisionTreeClassifier()
     modelDT.fit(X_train, Y_train)
@@ -165,6 +196,9 @@ def classify(data):
     random_state=0, C=5, penalty='l2',max_iter=1000)
     modelLR.fit(X_train, Y_train)
     model_pred_LR = modelLR.predict(X_test)
+
+    f1 = {'DT':f1_score(Y_test,model_pred_DT, average='macro') * 100, 'KNN':f1_score(Y_test, model_pred_KNN, average='macro') * 100,'RF':f1_score(Y_test,model_pred_RF, average='macro') * 100,'NB':f1_score(Y_test,model_pred_NB, average='macro') * 100,'SVM':f1_score(Y_test,model_pred_svm, average='macro') * 100,'LR':f1_score(Y_test,model_pred_LR, average='macro') * 100}
+
     print("\nDecision Tree Classifier accuracy: " , accuracy_score(Y_test, model_pred_DT) * 100, "%.")
     print("Decision Tree Classifier macro f1 avg: " , f1_score(Y_test,model_pred_DT, average='macro') * 100, "%.")
     print("K-Nearest Neighbor Classifier accuracy: " , accuracy_score(Y_test, model_pred_KNN) * 100, "%.")
@@ -214,7 +248,7 @@ def classify(data):
     accuracy_score(Y_test, model_pred_NB), 'NB', modelNB), (
     accuracy_score(Y_test, model_pred_svm), 'SVM', modelsvm), (
     accuracy_score(Y_test, model_pred_LR), 'LR', modelLR)]
-    return result_acc
+    return f1
 
 
 def main():
@@ -246,7 +280,50 @@ def main():
     bbc_data = pd.read_pickle("resources/bbc/bbc_data.pkl")
     bbc_imb = pd.read_pickle("resources/bbc/bbc_imb.pkl")
 
-    classify(bbc_imb)
+    raw = {'BBC':{},'Ruters':{},'20_Newsgroup':{}, 'BBC_org':{}}
+
+    raw['BBC'] = classify(bbc_imb['text'],bbc_imb['category'], False)
+    raw['Ruters'] = classify(reuters_df['text'], reuters_df['category'], False)
+    raw['20_Newsgroup'] = classify(newsgroup_data['text'], newsgroup_data['category'], False)
+    raw['BBC_org'] = classify(bbc_data['text'], bbc_data['category'], False)
+   
+
+    with open('raw.json', 'w') as f:
+        json.dump(raw, f)
+
+    oversample = {'BBC':{},'Ruters':{},'20_Newsgroup':{}, 'BBC_org':{}}
+    reuters_oversample = sampling(reuters_df,"oversampling")
+    oversample['Ruters'] = classify(reuters_oversample[0],reuters_oversample[1],True)
+
+    bbc_oversample = sampling(bbc_imb,"oversampling")
+    oversample['BBC'] = classify(bbc_oversample[0],bbc_oversample[1],True)
+
+    newsgroup_oversample = sampling(newsgroup_data,"oversampling")
+    oversample['20_Newsgroup'] = classify(newsgroup_oversample[0],newsgroup_oversample[1],True)
+
+    bbc_org_oversample = sampling(bbc_data,"oversampling")
+    oversample['BBC_org'] = classify(bbc_org_oversample[0],bbc_org_oversample[1],True)
+
+    with open('oversample.json', 'w') as f:
+        json.dump(oversample, f)
+
+    undersample = {'BBC':{},'Ruters':{},'20_Newsgroup':{}, 'BBC_org':{}}
+    reuters_undersample = sampling(reuters_df,"under_sampling")
+    undersample['Ruters'] = classify(reuters_undersample[0],reuters_undersample[1],True)
+
+    bbc_undersample = sampling(bbc_imb,"under_sampling")
+    undersample['BBC'] = classify(bbc_undersample[0],bbc_undersample[1],True)
+
+    newsgroup_undersample = sampling(newsgroup_data,"under_sampling")
+    undersample['20_Newsgroup'] = classify(newsgroup_undersample[0],newsgroup_undersample[1],True)
+
+    bbc_org_undersample = sampling(bbc_data,"under_sampling")
+    undersample['BBC_org'] = classify(bbc_org_undersample[0],bbc_org_undersample[1],True)
+
+    with open('undersample.json', 'w') as f:
+        json.dump(undersample, f)
+
+
 
 
 if __name__ == '__main__':

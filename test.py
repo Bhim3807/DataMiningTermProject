@@ -1,76 +1,64 @@
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42, shuffle = True)
-modelDT = tree.DecisionTreeClassifier()
-modelDT.fit(X_train, Y_train)
-model_pred_DT = modelDT.predict(X_test)
+import matplotlib.pyplot as plt
+import numpy as np
+import json
+import pandas as pd
 
-modelKNN = KNeighborsClassifier(n_neighbors=20)
-modelKNN.fit(X_train, Y_train)
-model_pred_KNN = modelKNN.predict(X_test)
+data ={}
+with open('undersample.json') as f:
+    data = json.load(f)
 
-modelRF = RandomForestClassifier(n_estimators=1000, random_state=0)
-modelRF.fit(X_train, Y_train)
-model_pred_RF = modelRF.predict(X_test)
+labels = ['BBC', 'Ruters', '20_newsgroup', 'BBC_original']
 
-modelNB = naive_bayes.MultinomialNB()
-modelNB.fit(X_train, Y_train)
-model_pred_NB = modelNB.predict(X_test)
+DT = []
+KNN = []
+RF = []
+NB= []
+SVM = []
+LR = []
 
-modelsvm = svm.SVC(C=1.0, kernel=’linear’, degree=3, gamma=’auto’)
-modelsvm.fit(X_train, Y_train)
-model_pred_svm = modelsvm.predict(X_test)
+for i in data.keys():
+	DT.append(data[i]['DT']/100)
+	KNN.append(data[i]['KNN']/100)
+	RF.append(data[i]['RF']/100) 
+	NB.append(data[i]['NB']/100)
+	SVM.append(data[i]['SVM']/100) 
+	LR.append(data[i]['LR']/100) 
+print(DT)
 
-modelLR = LogisticRegression(verbose=1, solver=’liblinear’,
-random_state=0, C=5, penalty=’l2’,max_iter=1000)
-modelLR.fit(X_train, Y_train)
-model_pred_LR = modelLR.predict(X_test)
-print("\nDecision Tree Classifier accuracy: " , accuracy_score(Y_test, model_pred_DT) * 100, "%.")
-print("Decision Tree Classifier macro f1 avg: " , f1_score(Y_test,model_pred_DT, average=’macro’) * 100, "%.")
-print("K-Nearest Neighbor Classifier accuracy: " , accuracy_score(Y_test, model_pred_KNN) * 100, "%.")
-print("K-Nearest Neighbor Classifier macro f1 avg: " , f1_score(Y_test, model_pred_KNN, average=’macro’) * 100, "%.")
-print("Random Forest Classifier accuracy: " , accuracy_score(Y_test, model_pred_RF) * 100, "%.")
-print("Random Forest Classifier macro f1 avg: " , f1_score(Y_test,model_pred_RF, average=’macro’) * 100, "%.")
-print("Naive Bayes Classifier accuracy: " , accuracy_score(Y_test,model_pred_NB) * 100, "%.")
-print("Naive Bayes Classifier macro f1 avg: " , f1_score(Y_test,model_pred_NB, average=’macro’) * 100, "%.")
-print("SVM Classifier accuracy: " , accuracy_score(Y_test,model_pred_svm) * 100, "%.")
-print("SVM Classifier macro f1 avg: " , f1_score(Y_test,
-model_pred_svm, average=’macro’) * 100, "%.")
-print("Logistic Regression accuracy: " , accuracy_score(Y_test,model_pred_LR) * 100, "%.")
-print("Logistic Regression macro f1 avg: " , f1_score(Y_test,model_pred_LR, average=’macro’) * 100, "%.")
+df = pd.DataFrame({'Decision Tree': DT,
+                    'KNN': KNN,'Random Forest':RF,'Naive Bayes':NB,'SVM':SVM,'Logistic Regression':LR}, index=labels)
+ax = df.plot.bar(rot=0, color={"Decision Tree": "green", "KNN": "red","Random Forest":"blue","Naive Bayes":"yellow","SVM":"purple","Logistic Regression":'black'})
+ax.legend(loc='best', fontsize=7)
+plt.ylabel("F1 Scores")
+plt.title("Undersampling")
+plt.tight_layout()
+plt.show()
+'''
+x = np.arange(len(labels))  # the label locations
+width = 0.2  # the width of the bars
 
-print("\n-----Decision Tree Classifier:-----\nAccuracy = " ,
-accuracy_score(Y_test, model_pred_DT) * 100, "%.")
-print("\nConfusion matrix: \n", confusion_matrix(Y_test,model_pred_DT))
-print("\nClassification Report: \n", classification_report(Y_test,model_pred_DT))
+fig, ax = plt.subplots()
+rects1 = ax.bar(x - 4*width/2, DT, width, label='Decision Tree')
+rects2 = ax.bar(x - 3*width/2, KNN, width, label='KNN')
+rects3 = ax.bar(x - 2*width/2, RF, width, label='Random Forest')
+rects4 = ax.bar(x + 2*width/2, NB, width, label='Naive Bayes')
+rects5 = ax.bar(x + 3*width/2, SVM, width, label='SVM')
+rects6 = ax.bar(x + 4*width/2, LR, width, label='Logistic Regression')
 
-print("\n-----K-Nearest Neighbor Classifier:-----\nAccuracy = " ,
-accuracy_score(Y_test, model_pred_KNN) * 100, "%.")
-print("\nConfusion matrix: \n", confusion_matrix(Y_test,model_pred_KNN))
-print("\nClassification Report: \n", classification_report(Y_test,model_pred_KNN))
+# Add some text for labels, title and custom x-axis tick labels, etc.
+ax.set_ylabel('F1 scores')
+ax.set_title('Original data')
+ax.set_xticks(x, labels)
+ax.legend()
 
-print("\n-----Random Forest Classifier:-----\nAccuracy = " ,
-accuracy_score(Y_test, model_pred_RF) * 100, "%.")
-print("\nConfusion matrix: \n", confusion_matrix(Y_test,model_pred_RF))
-print("\nClassification Report: \n", classification_report(Y_test,model_pred_RF))
+ax.bar_label(rects1, padding=3)
+ax.bar_label(rects2, padding=3)
+ax.bar_label(rects3, padding=3)
+ax.bar_label(rects4, padding=3)
+ax.bar_label(rects5, padding=3)
+ax.bar_label(rects6, padding=3)
 
-print("\n-----Naive Bayes Classifier:-----\nAccuracy: " ,
-accuracy_score(Y_test, model_pred_NB) * 100, "%.")
-print("\nConfusion matrix: \n", confusion_matrix(Y_test,model_pred_NB))
-print("\nClassification Report: \n", classification_report(Y_test,model_pred_NB))
+#fig.tight_layout()
 
-print("\n-----SVM Classifier-----\nAccuracy: " , accuracy_score(
-Y_test, model_pred_svm) * 100, "%.")
-print("\nConfusion matrix: \n", confusion_matrix(Y_test,model_pred_svm))
-print("\nClassification Report: \n", classification_report(Y_test,model_pred_svm))
-
-print("\n-----Logistic Regression-----\nAccuracy: " ,
-accuracy_score(Y_test, model_pred_LR) * 100, "%.")
-print("\nConfusion matrix: \n", confusion_matrix(Y_test,model_pred_LR))
-print("\nClassification Report: \n", classification_report(Y_test,model_pred_LR))
-
-result_acc = [(accuracy_score(Y_test, model_pred_DT), ’DT’, modelDT
-), (accuracy_score(Y_test, model_pred_KNN), ’KNN’, modelKNN), (
-accuracy_score(Y_test, model_pred_RF), ’RF’, modelRF), (
-accuracy_score(Y_test, model_pred_NB), ’NB’, modelNB), (
-accuracy_score(Y_test, model_pred_svm), ’SVM’, modelsvm), (
-accuracy_score(Y_test, model_pred_LR), ’LR’, modelLR)]
-return result_acc
+plt.show()
+'''
