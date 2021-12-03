@@ -23,6 +23,7 @@ from sklearn import tree
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
+import imblearn
 
 from sklearn.ensemble import VotingClassifier
 
@@ -76,6 +77,7 @@ def extract_bbc_data():
         files = os.listdir(i)
         for text_file in files:
             file_path = i + "/" + text_file
+            print("reading file:", file_path)
             with open(file_path) as f:
                 data = f.readlines()
             data = ''.join(data)
@@ -222,7 +224,7 @@ def main():
     print("Done\nLoading 20 newsgroups Data...")
     newsgroup_data = load_news()
     print("Done\nLoading BBC data...")
-    bbc_data = extract_bbc_data()
+    bbc_data = extract_bbc_data("bbc")
     print("Done\n")
     
     print("Preprcessing Data : String Cleaning, lemmatization, stopwords")
@@ -242,7 +244,9 @@ def main():
     reuters_df = pd.read_pickle("resources/bbc/reuters_df.pkl")
     newsgroup_data = pd.read_pickle("resources/bbc/newsgroup_data.pkl")
     bbc_data = pd.read_pickle("resources/bbc/bbc_data.pkl")
-    classify(bbc_data)
+    bbc_imb = pd.read_pickle("resources/bbc/bbc_imb.pkl")
+
+    classify(bbc_imb)
 
 
 if __name__ == '__main__':
